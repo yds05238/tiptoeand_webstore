@@ -9,7 +9,7 @@ admin.initializeApp()
 
 const db = admin.firestore()
 const products = db.collection('products')
-const users = db.collection('users')
+const transactions = db.collection('transactions')
 
 app.use(cors({ origin: true }))
 app.use(bodyparser.json())
@@ -17,39 +17,46 @@ app.use(bodyparser.urlencoded({ extended: false }))
 
 exports.api = functions.https.onRequest(app)
 
-app.get('/getProducts', async (req, res) => {
-  try {
-    let prod_snapshot = await products.get()
-    let prod_list = []
-    prod_snapshot.forEach((doc) => {
-      prod_list.push(doc.data())
+app.get('/products', (req, res) => {
+  products.get()
+    .then((snapshot) => {
+      let prod_list = []
+      snapshot.forEach((doc) => {
+        prod_list.push(doc.data())
+      })
+      res.send({ data: prod_list })
+      return
     })
-    res.send({ data: prod_list })
-  } catch (error) {
-    res.send(error)
-  }
+    .catch((error) => {
+      res.send(error)
+    })
 })
 
-app.get('/:product_id', (req, res) => {
+app.get('/products/:product_id', (req, res) => {
   let { product_id } = req.params
   products.doc(product_id).get()
-    .then(doc => {
+    .then((doc) => {
       res.send({ data: doc.data() })
       return
     })
-    .catch(error =>
+    .catch((error) =>
       res.send(error)
     )
 })
 
-app.post('/:product_id/addPurchase', (req, res) => {
-  try {
-    let { product_id } = req.params
-    let { name, netid, venmo_id, color, size } = req.body
-    let user = { name, netid, venmo_id, product_id, color, size }
-    users.doc(netid).set(user)
-    res.send({ data: user })
-  } catch (error) {
-    res.send({ error })
-  }
+app.get('/transactions', (req, res) => {
+  transactions.get()
+    .then((snapshot) => {
+      let t_list = []
+      snapshot.forEach((doc) => {
+        let today = doc.get('transactions_today')
+        let data = doc.data()
+        t_list.push({ today, data })
+      })
+      res.send({ data: t_list })
+      return
+    })
+    .catch((error) => {
+      res.send(error)
+    })
 })
